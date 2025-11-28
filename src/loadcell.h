@@ -4,17 +4,17 @@
 #include "HX711.h"
 
 // HX711 circuit wiring
-const int LOADCELL_DOUT_PIN = 5;
-const int LOADCELL_SCK_PIN = 4;
+const int LOADCELL_DOUT_PIN = 26;
+const int LOADCELL_SCK_PIN = 27;
 
 HX711 scale;
 
-void setup() {
+void loadCellInit() {
   Serial.begin(115200);
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 }
 
-void loop() {
+void loadCellCalibrate() {
 
   if (scale.is_ready()) {
     scale.set_scale();    
