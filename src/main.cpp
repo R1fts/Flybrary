@@ -1,18 +1,29 @@
 #include <Arduino.h>
-
-// put function declarations here:
-int myFunction(int, int);
+#include "motor.h"
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  motorInit();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+    moveToIdx(0);
+    delay(2000);
+    moveToIdx(1);
+    delay(2000);
+    moveToIdx(2);
+    delay(2000);
+    moveToIdx(3);
+    delay(2000);
+    moveToIdx(4);
+    delay(2000);
+    moveToIdx(5);
+    delay(2000);
+    moveToIdx(6);
+    delay(2000);
+    moveToIdx(7);
+    delay(2000);
+    moveToIdx(8);
+    delay(2000);
+    moveToIdx(9);
+    delay(5000);
 }
