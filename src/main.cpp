@@ -28,27 +28,12 @@ void setup() {
 
 
 void loop() {
-  Blynk.run();
-  checkBackendRequest();
-
+  // Blynk.run();
+  // checkBackendRequest();
+  st.moveClockwise(1);
+  delay(2000);
+  st.moveClockwise(-1);
   delay(2000); // poll every 3 sec (adjust as needed)
-}
-
-void checkBackendRequest() {
-  if (WiFi.status() != WL_CONNECTED) return;
-
-  HTTPClient http;
-  http.begin(backendUrl);
-
-  int code = http.GET();
-  if (code <= 0) {
-    Serial.println("HTTP request failed");
-    http.end();
-    return;
-  }
-
-  String response = http.getString();
-  Serial.println("Backend response: " + response);
 }
 /*
 The user first scans QR code near the Flybrary machine to access the web app.
