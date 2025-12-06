@@ -1,50 +1,60 @@
 #include <Arduino.h>
 
-// Define pin connections & motor's steps per revolution
-const int dirPin = 19;
-const int stepPin = 18;
+class Stepper{
+  public:
+    int DIR_PIN = 19;
+    int STEP_PIN = 18;
+    const int stepsPerRevolution = 200;
+    const float stepsPerDeg = (stepsPerRevolution) / 360.0;
+    const int maxIdx = 4;
+    const int maxDeg = 180;
 
-// REAL steps of the motor
-const int stepsPerRevolution = 200;
-const float stepsPerDeg = (stepsPerRevolution) / 360.0;
+    int currentAngle = 0;
 
-// Max number of books and degree of arch
-const int maxIdx = 9;
-const int maxDeg = 180;
+    Stepper(){
+      motorInit();
+    }
+    Stepper(int dir, int step){
+      DIR_PIN = dir;
+      STEP_PIN = step;
+      motorInit();
+    }
 
-int currentAngle = 0;
+    void motorInit() {
+      pinMode(STEP_PIN, OUTPUT);
+      pinMode(DIR_PIN, OUTPUT);
+    }
 
-void motorInit() {
-  // Declare pins as Outputs
-  pinMode(stepPin, OUTPUT);
-  pinMode(dirPin, OUTPUT);
-}
+    void moveMotor(int steps) {
+      digitalWrite(DIR_PIN, (steps > 0));
 
-void moveMotor(int steps) {
-  digitalWrite(dirPin, (steps > 0));
+      if (steps < 0) steps = -steps;   // always step positive count
 
-  if (steps < 0) steps = -steps;   // always step positive count
+      for (int i = 0; i < steps; i++) {
+        digitalWrite(STEP_PIN, HIGH);
+        delayMicroseconds(3000);
+        digitalWrite(STEP_PIN, LOW);
+        delayMicroseconds(3000);
+      }
+    }
 
-  for (int i = 0; i < steps; i++) {
-    digitalWrite(stepPin, HIGH);
-    delayMicroseconds(800);
-    digitalWrite(stepPin, LOW);
-    delayMicroseconds(800);
-  }
-}
+    void moveToIdx(int idx) {
+      if (idx < 0 || idx > maxIdx) return;
 
-void moveToIdx(int idx) {
-  if (idx < 0 || idx > maxIdx) return;
+      // Map idx 0–9 → angle 0–180
+      int targetAngle = map(idx, 0, maxIdx, 0, maxDeg);
+      // Calculate required steps
+      int deltaAngle = targetAngle - currentAngle;
+      int stepCount = deltaAngle * stepsPerDeg;
+      
+      // Move stepper
+      moveMotor(stepCount);
 
-  // Map idx 0–9 → angle 0–180
-  int targetAngle = map(idx, 0, maxIdx, 0, maxDeg);
-  // Calculate required steps
-  int deltaAngle = targetAngle - currentAngle;
-  int stepCount = deltaAngle * stepsPerDeg;
-  
-  // Move stepper
-  moveMotor(stepCount);
+      // Update angle state
+      currentAngle = targetAngle;
+    }
 
-  // Update angle state
-  currentAngle = targetAngle;
-}
+    void moveClockwise(int n) {
+      moveMotor(stepsPerRevolution * n);
+    }
+};
