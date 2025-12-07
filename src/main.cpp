@@ -11,6 +11,7 @@
 #include "loadcell.h"
 #include "servo.h"
 #include "mqtt.h"
+#include "doorsensor.h"
 // ↓↓↓ DEFINITIONS HERE ↓↓↓
 const char* WIFI_SSID  = "Day";
 const char* WIFI_PASS  = "daydoiwifi";
@@ -23,6 +24,8 @@ PubSubClient mqttClient(espClient);
 
 bool shouldVend = false;
 String isbn;
+
+//edit this to fit the pos on the real thing
 std::map<String, int> isbnToPosition = {
     {"9786165972000", 0}, //erika
     {"9786166241174", 1}, //muse 1
@@ -31,14 +34,11 @@ std::map<String, int> isbnToPosition = {
     {"9786166240771", 4}  //first 4
 };
 
-
-const int DIR_PIN = 19;
-const int STEP_PIN = 18;
-const int SERVO_PIN = 12;
-
-
+//Init sensors and actuators
 Stepper st(18,19);
 BorrowServo s(12);
+DoorSensor ds(22,23);
+float distanceCheck = 20;
 
 void vendBook(int pos);
 
@@ -159,6 +159,11 @@ void loop() {
 void vendBook(int pos){
   Serial.println("Vending is run");
   Serial.println(pos);
+  st.moveToIdx(pos);
+  s.open();
+  delay(3000); //delay 3 sec
+  while(ds.getDistance() < distanceCheck) delay(1000);
+  s.close();
 }
 
 /*

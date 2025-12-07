@@ -2,8 +2,8 @@
 
 class Stepper{
   public:
-    int DIR_PIN = 19;
-    int STEP_PIN = 18;
+    int DIR_PIN;
+    int STEP_PIN;
     const int stepsPerRevolution = 200;
     const float stepsPerDeg = (stepsPerRevolution) / 360.0;
     const int maxIdx = 4;
@@ -11,9 +11,6 @@ class Stepper{
 
     int currentAngle = 0;
 
-    Stepper(){
-      motorInit();
-    }
     Stepper(int dir, int step){
       DIR_PIN = dir;
       STEP_PIN = step;
