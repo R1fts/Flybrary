@@ -32,6 +32,14 @@ class BorrowServo {
       s1.write(90);
     }
 
+    void spin(){
+      s1.write(180);
+    }
+
+    void stop(){
+      s1.write(90);
+    }
+
     void write(int n){
       s1.write(n);
     }

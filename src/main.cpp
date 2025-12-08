@@ -12,6 +12,7 @@
 #include "servo.h"
 #include "mqtt.h"
 #include "doorsensor.h"
+#include "thermometer.h"
 // ↓↓↓ DEFINITIONS HERE ↓↓↓
 const char* WIFI_SSID  = "Day";
 const char* WIFI_PASS  = "daydoiwifi";
@@ -24,6 +25,9 @@ PubSubClient mqttClient(espClient);
 
 bool shouldVend = false;
 String isbn;
+bool gateOpen = false;
+unsigned long gateOpenStart = 0;
+unsigned long gateTimeout = 5000; // 5 seconds before auto-close
 
 //edit this to fit the pos on the real thing
 std::map<String, int> isbnToPosition = {
@@ -38,9 +42,12 @@ std::map<String, int> isbnToPosition = {
 Stepper st(18,19);
 BorrowServo s(12);
 DoorSensor ds(22,23);
+
+Thermo thermo(34);
+
 float distanceCheck = 20;
 
-void vendBook(int pos);
+void receiveBook(int pos);
 
 // MQTT Callback
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -139,7 +146,7 @@ void mqttLoop() {
 
     if (shouldVend) {
         Serial.println("Data received, systems run now");
-        vendBook(isbnToPosition[isbn]);
+        receiveBook(isbnToPosition[isbn]);
         shouldVend = false;
         
     }
@@ -152,23 +159,74 @@ void setup() {
   Serial.println("Flybrary ESP32 started.");
 }
 
+bool isDetected = false;
+
 void loop() {
-  mqttLoop();
+    mqttLoop();  // always run
+    delay(1000);
+
+    float dis = ds.getDistance();
+
+    if (gateOpen) {
+        // If hand detected, reset timer (keep gate open)
+        if (dis > 0.01 && dis <= 12.0) {
+            Serial.println("Hand detected -> Keeping gate open");
+            gateOpenStart = millis(); 
+        }
+
+        // Time to close?
+        if (millis() - gateOpenStart >= gateTimeout) {
+            Serial.println("Closing Gate");
+            s.close();
+            gateOpen = false;
+        }
+    }
 }
 
-void vendBook(int pos){
-  Serial.println("Vending is run");
-  Serial.println(pos);
-  st.moveToIdx(pos);
-  s.open();
-  delay(3000); //delay 3 sec
-  while(ds.getDistance() < distanceCheck) delay(1000);
-  s.close();
+bool sendTemperature(float temp);
+
+void receiveBook(int pos) {
+    Serial.print("Receiving book at slot: ");
+    Serial.println(pos);
+
+    Serial.println("Opening Gate");
+    s.open();
+    
+    float t = thermo.readTempCelsius();
+    Serial.print("Thermo: ");
+    Serial.println(t);
+    sendTemperature(t);
+    gateOpen = true;
+    gateOpenStart = millis();  // start countdown
 }
+
+bool sendTemperature(float temp) {
+    if (WiFi.status() != WL_CONNECTED) return false;
+
+    HTTPClient http;
+    http.begin("https://flybrary-web-backend.vercel.app/api/v1/esp/postTemperature");
+    http.addHeader("Content-Type", "application/json");
+
+    // Correct JSON
+    String json = "{\"temperature\": " + String(temp, 2) + "}";
+
+    int code = http.POST(json);
+    http.end();
+
+    Serial.print("Sent body: ");
+    Serial.println(json);
+    Serial.print("Status code: ");
+    Serial.println(code);
+
+    return (code == 200 || code == 201);
+}
+
 
 /*
-The user first scans QR code near the Flybrary machine to access the web app.
-The user then uses the web app to select a book to borrow.
-If the transaction is valid, the main bookshelf (stepper) rotates and the gate (servo) opens for the user to pick up their book.	
-There are sensors to detect if book is taken, and check if user’s hand is alright
+The user press return book in the website
+It calls mqtt client
+If esp receive the mqtt, it opens the gate
+If gate is opened, it opens for 5 secs
+then, detect with ultrasonic to prevent hand in gate
+if no hand, close gate
 */
